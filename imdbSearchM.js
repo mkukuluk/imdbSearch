@@ -1,5 +1,5 @@
 /*
-/Get a movie name if the input is a number or display a list of 
+/Get a movie name if the input is a number or display a list of
 /movies if the seasrch is a string.
 */
 
@@ -34,33 +34,33 @@ app.get('/', function(req, res) {
 app.post('/', function(req, res) {
 
     //this could be a number or a name, so validate
-	var movieName = req.body.movieName;
-	
+        var movieName = req.body.movieName;
+
     var isNumber = 0;
     if (isNaN(movieName)) {
         url = 'http://www.imdb.com/find?q=' + movieName + '&s=tt';
-		
-		var movieToInsert = new movieStat({movie: movieName});
-		movieToInsert.save(function (err, userObj) {
-		if (err) {
-			console.log(err);
-		} else {
-			console.log('saved successfully:', userObj);
-		}
-		});	
+
+                var movieToInsert = new movieStat({movie: movieName});
+                movieToInsert.save(function (err, userObj) {
+                if (err) {
+                        console.log(err);
+                } else {
+                        console.log('saved successfully:', userObj);
+                }
+                });
         isNumber = 0;
     } else {
         url = 'http://www.imdb.com/title/tt' + movieName + '/';
         isNumber = 1;
     }
 
- 
+
 
 
 
     console.log(url);
     console.log(isNumber);
-    request(url, function(error, response, html) {
+request(url, function(error, response, html) {
         if (!error) {
 
             var $ = cheerio.load(html);
@@ -72,7 +72,7 @@ app.post('/', function(req, res) {
                 rating: ""
             };
 
-			//This tag identifies the title
+                        //This tag identifies the title
             $('.title_wrapper').filter(function() {
                 var data = $(this);
 
@@ -94,24 +94,24 @@ app.post('/', function(req, res) {
 
 
 
-			//Iterate through search results.
+                        //Iterate through search results.
             var tdtotal = "";
 
             $('.result_text').each(function() {
                 tdtotal += ($(this).html()) + '.<br>';
             });
 
-            
+
 
         }
 
 
         if (isNumber == 1) {
             var html = '<a href="/">Try again.</a>'+'<br>'+'<a href="/search">Stats.</a>'+'<br>'+'Movie: ' + title + '.<br>' + 'Release: ' + release + '.<br>' + 'Rating: ' + rating + '.<br>' + '.<br>' + tdtotal;
-                
+
         } else {
             var html = '<a href="/">Try again.</a>'+'<br>'+'<a href="/search">Stats.</a>'+ '.<br>'+tdtotal ;
-                
+
         }
 
         res.send(html);
@@ -124,13 +124,13 @@ app.get('/collections',function(req,res){
   })
 });
 app.get('/search',function(req,res){
- 
-  movieStat.find({}, function (err, userObj) {
+
+  movieStat.find({},'-_id -__v', function (err, userObj) {
   if (err) {
     console.log(err);
   } else if (userObj) {
     console.log('Found:', userObj);
-	res.json(userObj);
+        res.send(userObj+'<a href="/">Try again.</a>');
   }
 })
 });
@@ -142,3 +142,4 @@ app.get('/search',function(req,res){
 app.listen('8081')
 console.log('Listening on port 8081');
 exports = module.exports = app;
+
