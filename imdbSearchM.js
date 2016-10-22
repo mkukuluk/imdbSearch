@@ -9,6 +9,7 @@ var request = require('request');
 var cheerio = require('cheerio');
 var mongoose = require('mongoose');
 var passport = require('passport');
+var nodemailer = require('nodemailer');
 LocalStrategy = require('passport-local').Strategy;
 
 mongoose.connect('mongodb://madhavank:thulasi12@localhost:27017/movieDB');
@@ -19,10 +20,10 @@ var bodyParser = require('body-parser');
 app.use(bodyParser());
 
 var uniqueUser = "";
-
+var passdetails = "";
 //define model
 var movieStat = mongoose.model('movieStat', {user:String, movie: String});
-var userDetails = mongoose.model('userDetails',{user:String, password:String});
+var userDetails = mongoose.model('userDetails',{user:String, password:String, email:String});
 
 app.get('/find', function(req, res) {
     // The form's action is '/' and its method is 'POST',
@@ -60,6 +61,8 @@ app.post('/find', function(req, res) {
                         console.log('saved successfully:', userObj);
                 }
                 });
+
+
         isNumber = 0;
     } else {
         url = 'http://www.imdb.com/title/tt' + movieName + '/';
@@ -119,7 +122,8 @@ app.post('/find', function(req, res) {
 
         }
 
- if (isNumber == 1) {
+
+        if (isNumber == 1) {
             var html = '<a href="/find">Try again.</a>'+'<br>'+'<a href="/search">Stats.</a>'+'<br>'+'Movie: ' + title + '.<br>' + 'Release: ' + release + '.<br>' + 'Rating: ' + rating + '.<br>' + '.<br>' + tdtotal+'<br>'
                         +'<a href="/logout">Log out</a>';
 
@@ -216,24 +220,91 @@ app.get('/register',function(req,res){
         res.sendfile('views/register.html');
 });
 
+app.get('/forgotpass',function(req,res){
+        res.sendfile('views/forgotpass.html');
+});
+
+app.post('/forgotpass', function(req, res){
+     var uniqueUser = req.body.regemail;
+     var transporter = nodemailer.createTransport({
+        service: 'Gmail',
+        auth: {
+            user: 'randommoviesearch@gmail.com', // Your email id
+            pass: 'thulasi12' // Your password
+        }
+    });
+
+
+     userDetails.find({email:uniqueUser},'-_id -__v', function (err, userObj) {
+  if (err) {
+    console.log(err);
+    res.send('Error Occurred');
+  } else if (userObj.length) {
+    console.log('Found:', userObj);
+          passdetails = userObj;
+
+ var str  = JSON.stringify(passdetails);
+   console.log(str);
+var start = str.indexOf("email");
+var end = str.indexOf("}");
+    var  em= str.substring(start+8, end -1);
+console.log('is this the email?',em);
+var mailOptions = {
+    from: 'randommoviesearch@gmail.com', // sender address
+    to: em, // list of receivers
+    subject: 'Random Movie Search Password Reset', // Subject line
+    text: str //, // plaintext body
+    // html: '<b>Hello world ✔</b>' // You can choose to send an HTML body instead
+    };
+
+   transporter.sendMail(mailOptions, function(error, info){
+    if(error){
+        console.log(error);
+        res.send('Error');
+    }else{
+        console.log('Message sent: ' + info.response);
+        res.send('Email with password sent'+'.<br>'+'<a href="/">Login</a>')
+        //res.json({yo: info.response});
+        };
+        });
+ }else{
+console.log('Nothing found');
+res.send ('No records found');
+}
+})
+
+
+
+});
 app.post('/register', function(req, res) {
         var userName = req.body.username;
         var pass = req.body.password;
         var rePass = req.body.repassword;
+        var email = req.body.emailid;
         //check if userid exists
         userDetails.find({user:userName}, function (err, userObj) {
+  console.log('User Obj:',userObj);
   if (err) {
     console.log(err);
   } else if (userObj.length) {
-    console.log('UID Exists:');
+
+        console.log('UID Exists:');
         res.send('User exists');
   }
   else if(pass!=rePass){
           res.send('Passwords dont match');
   }
- else{
+  else{
+         var query = userDetails.find({email:email}).select('email');
+         var emailcheck;
+          query.exec(function (err, someVal){
+           if(err) console.log('Test query error');
+       console.log('No error:', someVal);
+       if(someVal.length){
+        res.send('Email id already exists');
+        }else{
           console.log('New User.');
-          var insertUser = new userDetails({user:userName, password:pass});
+          var insertUser = new userDetails({user:userName, password:pass, email:email});
                                 insertUser.save(function (err, userObj) {
                 if (err) {
                         console.log(err);
@@ -243,7 +314,12 @@ app.post('/register', function(req, res) {
                 });
 
                                  res.send('User Added'+'.<br>'+'<a href="/">Login</a>')
-  }
+
+        }
+        });
+
+}
+
 })
 
 
@@ -258,9 +334,7 @@ app.get('/logout',
    uniqueUser = "";
    res.send('Logged out'+'<a href="/">Login</a>');
   });
-
-
-app.listen('8081')
-console.log('Listening on port 8081');
+app.listen('8080')
+console.log('Listening on port 8080');
 exports = module.exports = app;
-                                                             
+                                    
